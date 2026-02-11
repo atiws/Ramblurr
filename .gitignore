@@ -1,0 +1,14 @@
+# ===== Database =====
+rooms.db
+*.db
+*.sqlite
+*.sqlite3
+
+# ===== Python cache =====
+__pycache__/
+*.pyc
+*.pyo
+
+# ===== OS junk =====
+.DS_Store
+Thumbs.db

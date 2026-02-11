@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Chat App</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="static/style.css">
+</head>
+
+<body>
+
+    <!-- ===================== -->
+    <!-- HEADER -->
+    <!-- ===================== -->
+    <h1>Chat Room</h1>
+
+
+    <!-- ===================== -->
+    <!-- MAIN CHAT SECTION -->
+    <!-- ===================== -->
+    <main class="chat-wrapper">
+
+        <!-- Chat + Sidebar -->
+        <div class="layout">
+
+            <!-- Messages -->
+            <div id="c" class="chat"></div>
+
+            <!-- Users sidebar -->
+            <aside class="users-panel">
+                <h3>Users</h3>
+                <div id="userList"></div>
+            </aside>
+
+        </div>
+
+
+        <!-- Input bar -->
+        <div class="input-bar">
+            <button id="emojiBtn" class="emoji-btn">😊</button>
+
+            <input
+                type="text"
+                id="m"
+                placeholder="Type message..."
+                autocomplete="off"
+            />
+
+            <button id="sendBtn" onclick="sendMessage()">Send</button>
+        </div>
+
+
+        <!-- Emoji picker -->
+        <div id="emojiPicker" class="emoji-picker hidden"></div>
+
+    </main>
+
+
+    <!-- ===================== -->
+    <!-- ROOM CONTROLS -->
+    <!-- ===================== -->
+    <section class="room-controls">
+
+        <button onclick="createRoom()">Create Private Room</button>
+
+        <div class="join-row">
+            <input id="codeInput" placeholder="Join code" />
+            <button onclick="joinRoom()">Join</button>
+        </div>
+
+        <button onclick="joinGlobal()">Global Chat</button>
+
+    </section>
+
+</body>
+<!-- Scripts -->
+<script src="static/script.js"></script>
+</html>
