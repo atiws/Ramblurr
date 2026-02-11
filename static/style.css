@@ -1,0 +1,378 @@
+/* ========================
+   GLOBAL
+======================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+body {
+    background: radial-gradient(circle at top, #1e1e2f, #0f0f14);
+    color: #e6e6eb;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+
+/* ========================
+   HEADINGS
+======================== */
+
+h1 {
+    text-align: center;
+    color: #f5f5f7;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 14px;
+}
+
+
+/* ========================
+   LAYOUT
+======================== */
+
+div {
+    text-align: center;
+    margin: 6px 0;
+}
+
+
+/* ========================
+   CHAT CONTAINER
+======================== */
+
+.chat {
+    width: 500px;
+    height: 400px;
+    margin: 0 auto 10px auto;
+
+    padding: 12px;
+    overflow-y: auto;
+
+    background: rgba(25, 25, 35, 0.95);
+    backdrop-filter: blur(6px);
+
+    border-radius: 12px;
+    box-shadow:
+        0 10px 25px rgba(0, 0, 0, 0.5),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+
+/* ========================
+   MESSAGES
+======================== */
+
+.msg {
+    margin-bottom: 8px;
+    padding: 6px 8px;
+
+    max-width: 80%;
+    word-wrap: break-word;
+
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+
+    font-size: 14px;
+}
+
+.msg.image {
+    padding: 0;
+    background: none;
+}
+
+.msg.image img {
+    max-width: 260px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+}
+
+
+/* ========================
+   INPUTS
+======================== */
+
+input {
+    background: #1a1a25;
+    color: #e6e6eb;
+
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+
+    padding: 8px 10px;
+    font-family: "Inter", sans-serif;
+    outline: none;
+}
+
+input::placeholder {
+    color: #8b8b9c;
+}
+
+input:focus {
+    border-color: #6ea8fe;
+    box-shadow: 0 0 0 2px rgba(110, 168, 254, 0.25);
+}
+
+
+/* ========================
+   BUTTONS
+======================== */
+
+button {
+    background: linear-gradient(135deg, #6ea8fe, #9a7bff);
+    color: #0f0f14;
+
+    border: none;
+    border-radius: 10px;
+
+    padding: 8px 14px;
+    margin-left: 4px;
+
+    font-weight: 600;
+    cursor: pointer;
+
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(154, 123, 255, 0.4);
+}
+
+button:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+
+/* ========================
+   DRAG & DROP
+======================== */
+
+.chat.dragging {
+    outline: 2px dashed #9a7bff;
+    outline-offset: -6px;
+}
+
+/* ========================
+   MESSAGE ALIGNMENT
+======================== */
+
+.msg-wrapper {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+    max-width: 80%;
+}
+
+.msg-wrapper.other {
+    align-items: flex-start;
+}
+
+.msg-wrapper.self {
+    align-items: flex-end;
+    margin-left: auto;
+}
+
+/* ========================
+   SENDER NAME
+======================== */
+
+.sender {
+    font-size: 12px;
+    color: #9a9ab0;
+    margin-bottom: 2px;
+    padding-left: 4px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+/* ========================
+   MESSAGE BUBBLES
+======================== */
+
+.bubble {
+    padding: 8px 10px;
+    border-radius: 12px;
+    line-height: 1.4;
+}
+
+.msg-wrapper.other .bubble {
+    background: rgba(255, 255, 255, 0.06);
+    border-top-left-radius: 4px;
+}
+
+.msg-wrapper.self .bubble {
+    background: linear-gradient(135deg, #6ea8fe, #9a7bff);
+    color: #0f0f14;
+    border-top-right-radius: 4px;
+}
+
+/* ========================
+   IMAGES
+======================== */
+
+.msg.image {
+    max-width: 260px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* ========================
+   SYSTEM MESSAGES
+======================== */
+
+.system {
+    text-align: center;
+    font-size: 12px;
+    color: #8b8b9c;
+    margin: 6px 0;
+}
+
+/* ========================
+   CHAT LAYOUT WRAPPER
+======================== */
+
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* ========================
+   INPUT BAR (bottom dock)
+======================== */
+
+.input-bar {
+    width: 500px;
+
+    display: flex;
+    gap: 8px;
+
+    margin-top: 8px;
+}
+
+.input-bar input {
+    flex: 1;
+    height: 42px;
+
+    padding: 0 12px;
+
+    border-radius: 10px;
+}
+
+.input-bar button {
+    width: 90px;
+    height: 42px;
+}
+
+/* ========================
+   EMOJI BUTTON
+======================== */
+
+.emoji-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 20px;
+    padding: 0;
+}
+
+
+/* ========================
+   EMOJI PICKER
+======================== */
+
+.emoji-picker {
+    width: 500px;
+    max-height: 160px;
+
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 6px;
+
+    padding: 10px;
+    margin-top: 6px;
+
+    background: #1b1b25;
+    border-radius: 10px;
+
+    overflow-y: auto;
+}
+
+.emoji-picker span {
+    cursor: pointer;
+    font-size: 20px;
+    text-align: center;
+    padding: 4px;
+    border-radius: 6px;
+}
+
+.emoji-picker span:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.hidden {
+    display: none;
+}
+
+.chat-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.room-controls {
+    margin-top: 14px;
+    text-align: center;
+}
+
+.join-row {
+    margin: 6px 0;
+}
+
+/* ========================
+   LAYOUT (chat + sidebar)
+======================== */
+
+.layout {
+    display: flex;
+    gap: 14px;
+    align-items: stretch;
+}
+
+/* ========================
+   USERS PANEL
+======================== */
+
+.users-panel {
+    width: 180px;
+    background: rgba(20, 20, 28, 0.95);
+    border-radius: 12px;
+    padding: 10px;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow-y: auto;
+}
+
+.users-panel h3 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #9a9ab0;
+    text-align: center;
+}
+
+.user {
+    font-size: 13px;
+    margin: 4px 0;
+    font-weight: 500;
+}
+
+.user.online {
+    opacity: 1;
+}
+
+.user.offline {
+    opacity: 0.4;
+}
