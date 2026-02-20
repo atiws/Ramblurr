@@ -225,12 +225,6 @@ async def ws_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
-    if "global" not in rooms:
-        rooms["global"] = {
-            "clients": set(),
-            "private": False
-        }
-
     # =====================
     # AUTH
     # =====================
@@ -276,7 +270,7 @@ async def ws_handler(request):
     for old in await db_get_messages(request.app, "global"):
         await ws.send_str(old)
 
-    await broadcast(request.app, "global", f"[{name} joined]")
+    await broadcast(request.app, "global", "[Server]", f"[{name} joined]")
     await send_user_list(request.app)
 
     # =====================
@@ -334,7 +328,7 @@ async def ws_handler(request):
             rooms[code]["clients"].add(ws)
 
             await ws.send_str(f"[Room created] Code: {code}")
-            await send_user_list(request.app)
+            await send_user_list()
             continue
 
         # =====================
@@ -354,10 +348,10 @@ async def ws_handler(request):
             user_room[ws] = code
             rooms[code]["clients"].add(ws)
 
-            for old in await db_get_messages(request.app, code):
+            for old in db_get_messages(request.app, code):
                 await ws.send_str(old)
 
-            await broadcast(request.app, code, f"[{name} joined]")
+            await broadcast(request.app, code, "[Server]", f"[{name} joined]")
             await send_user_list(request.app)
             continue
 
@@ -375,12 +369,12 @@ async def ws_handler(request):
     rooms[current_room]["clients"].discard(ws)
     user_room.pop(ws, None)
 
-    await broadcast(request.app, current_room, f"[{name} left]")
+    await broadcast(request.app, current_room, name, "[left]")
 
     usernames.pop(ws, None)
     online_users.discard(name)
 
-    await send_user_list(request.app)
+    await send_user_list()
 
     return ws
 
@@ -403,4 +397,3 @@ app.on_cleanup.append(close_db)
 app.router.add_get("/", home)
 
 web.run_app(app, port=int(os.environ.get("PORT", 8000)))
-
