@@ -67,35 +67,26 @@ async def db_create_room(app, name, private):
 async def db_add_message(app, room, username, message):
     async with app["db"].acquire() as conn:
         stmt = await conn.prepare(
-            """
-            INSERT INTO messages (room, username, message)
-            VALUES ($1, $2, $3)
-            """
+            "INSERT INTO messages (room, username, message) VALUES ($1, $2, $3)"
         )
         await stmt.fetch(room, username, message)
 
 async def db_get_messages(app, room, limit=10000):
     async with app["db"].acquire() as conn:
-        stmt = rows = await conn.prepare(
-            """
+        stmt = await conn.prepare("""
             SELECT username, message
             FROM messages
             WHERE room=$1
             ORDER BY id ASC
             LIMIT $2
-            """
-        )
-        await stmt.fetch(room, limit)
-
+        """)
+        rows = await stmt.fetch(room, limit)
     return [f"{r['username']}: {r['message']}" for r in rows]
 
 async def db_get_user(app, device):
     async with app["db"].acquire() as conn:
-        stmt = row = await conn.prepare(
-            "SELECT name FROM users WHERE device=$1",
-        )
-        await stmt.fetchrow(device)
-
+        stmt = await conn.prepare("SELECT name FROM users WHERE device=$1")
+        row = await stmt.fetchrow(device)
     return row["name"] if row else None
 
 async def db_set_username(app, device, name):
@@ -104,16 +95,14 @@ async def db_set_username(app, device, name):
         exists = await stmt_check.fetchrow(name)
         if exists:
             raise ValueError("Username already taken")
-
-        stmt = await conn.prepare(
-            """
+        
+        stmt = await conn.prepare("""
             INSERT INTO users (device, name)
             VALUES ($1, $2)
             ON CONFLICT (device)
             DO UPDATE SET name = EXCLUDED.name
-            """
-        )
-        await stmt.fetch(device, name)        
+        """)
+        await stmt.fetch(device, name)    
 
 async def set_username(request):
     try:
@@ -167,11 +156,8 @@ async def db_get_all_users(app):
 
 async def db_ban_user(app, username):
     async with app["db"].acquire() as conn:
-        result = await conn.prepare(
-            "UPDATE users SET banned = TRUE WHERE name = $1",
-            username
-        )
-        return result
+        stmt = await conn.prepare("UPDATE users SET banned = TRUE WHERE name = $1")
+        await stmt.fetch(username)
 
 async def db_is_banned(app, device):
     async with app["db"].acquire() as conn:
@@ -286,6 +272,8 @@ async def ws_handler(request):
 
     usernames[ws] = name
     online_users.add(name)
+
+    ws.device = device
 
     # =====================
     # JOIN GLOBAL
