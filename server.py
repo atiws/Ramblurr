@@ -29,7 +29,8 @@ async def init_db(app):
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS users(
                 device TEXT PRIMARY KEY,
-                name TEXT
+                name TEXT,
+                banned BOOLEAN DEFAULT FALSE
             );
         """)
 
@@ -158,6 +159,22 @@ async def db_get_all_users(app):
 
     return [r["name"] for r in rows]
 
+# =======================
+# 2. Add DB helpers for banning
+# =======================
+async def db_ban_user(app, username):
+    async with app["db"].acquire() as conn:
+        result = await conn.execute(
+            "UPDATE users SET banned = TRUE WHERE name = $1",
+            username
+        )
+        return result
+
+async def db_is_banned(app, device):
+    async with app["db"].acquire() as conn:
+        row = await conn.fetchrow("SELECT banned FROM users WHERE device=$1", device)
+        return row["banned"] if row else False
+
 # ==================================================
 # runtime state (ONLY websocket stuff in RAM)
 # ==================================================
@@ -175,7 +192,22 @@ online_users = set()
 
 user_counter = 1
 
-bad_words = {'fuck', 'bitch', 'shit', 'dick', 'nigga', 'nigger', 'wtf'}
+bad_words = {
+    # Profanity
+    'fuck', 'fucking', 'shit', 'bitch', 'bastard', 'dick', 'cock', 'pussy', 'asshole', 'crap', 'douche', 'douchebag', 'slut', 'whore', 'cunt', 'nigga', 'nigger', 'nazi', 'retard',
+    
+    # Sexually explicit
+    'sex', 'porn', 'xxx', 'cum', 'dildo', 'penis', 'vagina', 'boobs', 'tits', 'anal', 'blowjob', 'handjob', 'milf', 'orgy', 'fetish',
+
+    # Insults / derogatory
+    'idiot', 'stupid', 'moron', 'loser', 'jerk', 'dumb', 'twat', 'fag', 'gay', 'lame', 'fatass', 'shithead', 'tool', 'retarded',
+
+    # Slang / abbreviated
+    'wtf', 'omg', 'fml', 'lmao', 'lmfao', 'rofl', 'piss', 'damn', 'hell', 'shitface', 'asswipe',
+
+    # Extreme / controversial
+    'kill', 'rape', 'terrorist', 'bomb', 'suicide', 'shoot', 'killself'
+}
 
 MAX_SIZE = 25 * 1024 * 1024
 
@@ -308,6 +340,14 @@ async def ws_handler(request):
 
         text = msg.data.strip()
 
+        # ===========================
+        # CHECK IF USER IS BANNED
+        # ===========================
+
+        if await db_is_banned(request.app, device):
+            await ws.send_str("[Server]: You are banned and cannot send messages.")
+            continue
+
         # =====================
         # CREATE ROOM
         # =====================
@@ -363,6 +403,23 @@ async def ws_handler(request):
 
         clean = filter_text(text) if current_room == "global" else text
         await broadcast(request.app, current_room, name, clean)
+
+        # ===================
+        # BAN SYSTEM
+        # ===================
+        # =======================
+        admin_devices = ["351843eb-f2bc-4769-8430-6235a7feb22a"]
+        
+        if text.startswith(".") and device in admin_devices:
+            parts = text.split()
+            cmd = parts[0].lower()
+
+            if cmd == ".ban" and len(parts) > 1:
+                target_name = parts[1]
+                await db_ban_user(request.app, target_name)
+
+                await broadcast(request.app, current_room, "[Server]", f"User '{target_name} has been banned.")
+                continue
 
     # =====================
     # DISCONNECT
