@@ -12,7 +12,7 @@ const titles = ["W", "We", "Wel", "Welc", "Welco", "Welcom", "Welcome ", "Welcom
         setInterval(changeTitle, 250);
 
 // =======================
-// DEVICE ID (persistent)
+// DEVICE ID
 // =======================
 
 let deviceId = localStorage.getItem("deviceId");
@@ -108,7 +108,6 @@ function addMessage(sender, text, side) {
     name.className = "sender";
     name.textContent = sender;
 
-    // ✅ colored usernames
     name.style.color = nameToColor(sender);
 
     const bubble = document.createElement("div");
@@ -138,7 +137,7 @@ function addImage(blob, side) {
 
 
 // =======================
-// USER LIST (NEW)
+// USER LIST
 // =======================
 
 function renderUsers(online, all) {
@@ -151,7 +150,6 @@ function renderUsers(online, all) {
         div.className = "user " + (online.includes(name) ? "online" : "offline");
         div.textContent = name;
 
-        // colored in sidebar too
         div.style.color = nameToColor(name);
 
         userList.appendChild(div);
@@ -187,7 +185,6 @@ ws.onerror = () => addSystem("[Connection error]");
 
 ws.onmessage = (e) => {
 
-    // ===== IMAGE =====
     if (e.data instanceof Blob) {
         addImage(e.data, "other");
         return;
@@ -195,7 +192,6 @@ ws.onmessage = (e) => {
 
     const text = e.data;
 
-    // ===== JSON (user list update) =====
     try {
         const data = JSON.parse(text);
 
@@ -205,13 +201,11 @@ ws.onmessage = (e) => {
         }
     } catch {}
 
-    // detect own username
     const joinMatch = text.match(/^\[(.+?) joined\]$/);
     if (joinMatch && !myName) {
         myName = joinMatch[1];
     }
 
-    // normal chat: "Name: message"
     const msgMatch = text.match(/^([^:]+):\s(.+)$/);
 
     if (msgMatch) {
@@ -333,9 +327,3 @@ document.addEventListener("click", (e) => {
         emojiPicker.classList.add("hidden");
     }
 });
-
-
-
-
-
-
