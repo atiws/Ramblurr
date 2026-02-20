@@ -238,13 +238,16 @@ async def ws_handler(request):
 
             if data.get("type") == "auth":
                 device = data["deviceId"]
+                name = data.get("username")
 
-                name = await db_get_user(request.app, device)
-
-                if not name:
-                    name = f"Anonymous{user_counter:03d}"
+                if name:
                     await db_set_username(request.app, device, name)
-                    user_counter += 1
+                else:
+                    name = await db_get_user(request.app, device)
+                    if not name:
+                        name = f"Anonymous{user_counter:03d}"
+                        await db_set_username(request.app, device, name)
+                        user_counter += 1                    
         except:
             pass
 
@@ -267,7 +270,7 @@ async def ws_handler(request):
     for old in await db_get_messages(request.app, "global"):
         await ws.send_str(old)
 
-    await broadcast(request.app, "global", name, f"[{name} joined]")
+    await broadcast(request.app, "global", "[Server]", f"[{name} joined]")
     await send_user_list(request.app)
 
     # =====================
@@ -348,7 +351,7 @@ async def ws_handler(request):
             for old in db_get_messages(request.app, code):
                 await ws.send_str(old)
 
-            await broadcast(request.app, code, name, f"[{name} joined]")
+            await broadcast(request.app, code, "[Server]", f"[{name} joined]")
             await send_user_list(request.app)
             continue
 
