@@ -214,17 +214,6 @@ async def send_user_list(app):
         for ws in room["clients"]:
             await ws.send_str(payload)
 
-# =========================
-# username check
-# =========================
-
-async def get_username(request):
-    device = request.query.get("device")
-    if not device:
-        return web.json_response({"error": "Missing device"}, status=400)
-
-    name = await db_get_user(request.app, device)
-    return web.json_response({"username": name})
 
 # ==================================================
 # websocket handler
@@ -406,7 +395,5 @@ app.on_startup.append(init_db)
 app.on_cleanup.append(close_db)
 
 app.router.add_get("/", home)
-
-app.router.add_get("/get_username", get_username)
 
 web.run_app(app, port=int(os.environ.get("PORT", 8000)))
