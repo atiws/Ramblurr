@@ -13,6 +13,8 @@ from aiohttp import web
 async def init_db(app):
     app["db"] = await asyncpg.create_pool(
         dsn=os.environ["DATABASE_URL"],
+        min_size = 1,
+        max_size = 100,
         ssl="require"
     )
 
