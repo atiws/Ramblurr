@@ -225,6 +225,12 @@ async def ws_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
+    if "global" not in rooms:
+        rooms["global"] = {
+            "clients": set(),
+            "private": False
+        }
+
     # =====================
     # AUTH
     # =====================
@@ -397,5 +403,4 @@ app.on_cleanup.append(close_db)
 app.router.add_get("/", home)
 
 web.run_app(app, port=int(os.environ.get("PORT", 8000)))
-
 
