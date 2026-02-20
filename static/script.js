@@ -9,18 +9,6 @@ const titles = ["W", "We", "Wel", "Welc", "Welco", "Welcom", "Welcome ", "Welcom
             if (index < 18) {
                 index = (index + 1) % titles.length;
                 setInterval(250);
-            } else {
-                index = 18;
-                setInterval(500);
-                index= 19;
-                setInterval(1000);
-                index = 20;
-                setInterval(1000);
-                index = 21;
-                setInterval(1000);
-                index = 22;
-                setInterval(1000);
-                index = 0;
             }
         }
 
@@ -346,3 +334,4 @@ document.addEventListener("click", (e) => {
         emojiPicker.classList.add("hidden");
     }
 });
+
