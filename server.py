@@ -12,7 +12,8 @@ from aiohttp import web
 
 async def init_db(app):
     app["db"] = await asyncpg.create_pool(
-        dsn=os.environ["DATABASE_URL"]
+        dsn=os.environ["DATABASE_URL"],
+        ssl="require"
     )
 
     async with app["db"].acquire() as conn:
