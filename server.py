@@ -348,7 +348,7 @@ async def ws_handler(request):
             user_room[ws] = code
             rooms[code]["clients"].add(ws)
 
-            for old in db_get_messages(request.app, code):
+            for old in await db_get_messages(request.app, code):
                 await ws.send_str(old)
 
             await broadcast(request.app, code, "[Server]", f"[{name} joined]")
@@ -397,3 +397,4 @@ app.on_cleanup.append(close_db)
 app.router.add_get("/", home)
 
 web.run_app(app, port=int(os.environ.get("PORT", 8000)))
+
