@@ -59,7 +59,7 @@ async def db_create_room(app, name, private):
             ON CONFLICT (name) DO NOTHING
             """,
             name,
-            int(private)
+            private
         )
 
 async def db_add_message(app, room, username, message):
@@ -267,8 +267,8 @@ async def ws_handler(request):
     for old in await db_get_messages(request.app, "global"):
         await ws.send_str(old)
 
-    await broadcast("global", f"[{name} joined]")
-    await send_user_list()
+    await broadcast(request.app, "global", name, f"[{name} joined]")
+    await send_user_list(request.app)
 
     # =====================
     # MAIN LOOP
@@ -316,7 +316,7 @@ async def ws_handler(request):
                     "private": True
                 }
 
-                db_create_room(code, True)
+                await db_create_room(request.app, code, True)
 
             rooms[current_room]["clients"].discard(ws)
 
@@ -345,11 +345,11 @@ async def ws_handler(request):
             user_room[ws] = code
             rooms[code]["clients"].add(ws)
 
-            for old in db_get_messages(code):
+            for old in db_get_messages(request.app, code):
                 await ws.send_str(old)
 
-            await broadcast(code, f"[{name} joined]")
-            await send_user_list()
+            await broadcast(request.app, code, name, f"[{name} joined]")
+            await send_user_list(request.app)
             continue
 
         # =====================
