@@ -3,97 +3,157 @@ import os
 import random
 import string
 import json
-import sqlite3
+import asyncpg
 from aiohttp import web
 
 # ==================================================
-# SQLite setup
+# Postgres Setup
 # ==================================================
 
-DB_FILE = "rooms.db"
+async def init_db(app):
+    app["db"] = await asyncpg.create_pool(
+        dsn=os.environ["DATABASE_URL"]
+    )
 
-conn = sqlite3.connect(DB_FILE)
-conn.row_factory = sqlite3.Row
-cur = conn.cursor()
+    async with app["db"].acquire() as conn:
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS rooms(
+                name TEXT PRIMARY KEY,
+                private BOOLEAN
+            );
+        """)
 
-# rooms
-cur.execute("""
-CREATE TABLE IF NOT EXISTS rooms(
-    name TEXT PRIMARY KEY,
-    private INTEGER
-)
-""")
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS users(
+                device TEXT PRIMARY KEY,
+                name TEXT
+            );
+        """)
 
-# messages
-cur.execute("""
-CREATE TABLE IF NOT EXISTS messages(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    room TEXT,
-    msg TEXT
-)
-""")
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS messages(
+                id SERIAL PRIMARY KEY,
+                room TEXT,
+                username TEXT,
+                message TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
 
-# users (NEW — persistent usernames)
-cur.execute("""
-CREATE TABLE IF NOT EXISTS users(
-    device TEXT PRIMARY KEY,
-    name TEXT
-)
-""")
+    await db_create_room(app, "global", False)
 
-conn.commit()
-
+async def close_db(app):
+    await app["db"].close()
 
 # ==================================================
 # DB helpers
 # ==================================================
 
-def db_create_room(name, private):
-    cur.execute(
-        "INSERT OR IGNORE INTO rooms VALUES (?, ?)",
-        (name, int(private))
-    )
-    conn.commit()
+async def db_create_room(app, name, private):
+    async with app["db"].acquire() as conn:
+        await conn.execute(
+            """
+            INSERT INTO rooms(name, private)
+            VALUES ($1, $2)
+            ON CONFLICT (name) DO NOTHING
+            """,
+            name,
+            int(private)
+        )
 
+async def db_add_message(app, room, username, message):
+    async with app["db"].acquire() as conn:
+        await conn.execute(
+            """
+            INSERT INTO messages (room, username, message)
+            VALUES ($1, $2, $3)
+            """,
+            room,
+            username,
+            message
+        )
 
-def db_add_message(room, msg):
-    cur.execute(
-        "INSERT INTO messages(room, msg) VALUES (?, ?)",
-        (room, msg)
-    )
-    conn.commit()
+async def db_get_messages(app, room, limit=50):
+    async with app["db"].acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT username, message
+            FROM messages
+            WHERE room=$1
+            ORDER BY id ASC
+            LIMIT $2
+            """,
+            room,
+            limit
+        )
 
+    return [f"{r['username']}: {r['message']}" for r in rows]
 
-def db_get_messages(room, limit=50):
-    cur.execute(
-        "SELECT msg FROM messages WHERE room=? ORDER BY id DESC LIMIT ?",
-        (room, limit)
-    )
-    return [r["msg"] for r in reversed(cur.fetchall())]
+async def db_get_user(app, device):
+    async with app["db"].acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT name FROM users WHERE device=$1",
+            device
+        )
 
-
-def db_get_user(device):
-    cur.execute("SELECT name FROM users WHERE device=?", (device,))
-    row = cur.fetchone()
     return row["name"] if row else None
 
+async def db_set_username(app, device, name):
+    async with app["db"].acquire() as conn:
+        await conn.execute(
+            """
+            INSERT INTO users (device, name)
+            VALUES ($1, $2)
+            ON CONFLICT (device)
+            DO UPDATE SET name = EXCLUDED.name
+            """,
+            device,
+            name
+        )
 
-def db_create_user(device, name):
-    cur.execute(
-        "INSERT INTO users(device, name) VALUES (?, ?)",
-        (device, name)
-    )
-    conn.commit()
+async def set_username(request):
+    try:
+        data = await request.json()
+    except:
+        return web.json_response({"error": "Invalid JSON"}, status = 400)
+    
+    device = data.get("device")
+    name = data.get("name")
 
+    # Basic validation
+    if not device or not name:
+        return web.json_response({"error": "Missing fields"}, status=400)
+    
+    if not re.match(r"^[A-Za-z0-9_]{3,20}$", name):
+        return web.json_response(
+            {"error": "Username must be 3 - 20 characters"},
+            status=400
+        )
+    
+    await db_set_username(request.app, device, name)
+    return web.json_response({"success": "True"})
 
-def db_get_all_users():
-    cur.execute("SELECT name FROM users")
-    return [r["name"] for r in cur.fetchall()]
+async def send_message(request):
+    data = await request.json()
 
+    device = data["device"]
+    room = data["room"]
+    message = data["message"]
 
-# create global room once
-db_create_room("global", False)
+    username = await db_get_user(request.app, device)
 
+    if not username:
+        username = "Anonymous"
+
+    await db_add_message(request.app, room, username, message)
+
+    return web.json_response({"ok": True})
+
+async def db_get_all_users(app):
+    async with app["db"].acquire() as conn:
+        rows = await conn.fetch("SELECT name FROM users")
+
+    return [r["name"] for r in rows]
 
 # ==================================================
 # runtime state (ONLY websocket stuff in RAM)
@@ -131,18 +191,22 @@ def filter_text(msg):
     return msg
 
 
-async def broadcast(room, msg):
-    db_add_message(room, msg)
+async def broadcast(app, room, username, message):
+    await db_add_message(app, room, username, message)
+
+    formatted = f"{username}: {message}"
 
     for ws in rooms[room]["clients"]:
-        await ws.send_str(msg)
+        await ws.send_str(formatted)
 
 
-async def send_user_list():
+async def send_user_list(app):
+    all_users = await db_get_all_users(app)
+
     payload = json.dumps({
         "type": "users",
         "online": list(online_users),
-        "all": db_get_all_users()  # persistent users
+        "all": all_users
     })
 
     for room in rooms.values():
@@ -174,11 +238,11 @@ async def ws_handler(request):
             if data.get("type") == "auth":
                 device = data["deviceId"]
 
-                name = db_get_user(device)
+                name = await db_get_user(request.app, device)
 
                 if not name:
                     name = f"Anonymous{user_counter:03d}"
-                    db_create_user(device, name)
+                    await db_set_username(request.app, device, name)
                     user_counter += 1
         except:
             pass
@@ -199,7 +263,7 @@ async def ws_handler(request):
     rooms["global"]["clients"].add(ws)
     user_room[ws] = "global"
 
-    for old in db_get_messages("global"):
+    for old in await db_get_messages(request.app, "global"):
         await ws.send_str(old)
 
     await broadcast("global", f"[{name} joined]")
@@ -292,7 +356,7 @@ async def ws_handler(request):
         # =====================
 
         clean = filter_text(text) if current_room == "global" else text
-        await broadcast(current_room, f"{name}: {clean}")
+        await broadcast(request.app, current_room, name, clean)
 
     # =====================
     # DISCONNECT
@@ -301,7 +365,7 @@ async def ws_handler(request):
     rooms[current_room]["clients"].discard(ws)
     user_room.pop(ws, None)
 
-    await broadcast(current_room, f"[{name} left]")
+    await broadcast(request.app, current_room, name, "[left]")
 
     usernames.pop(ws, None)
     online_users.discard(name)
@@ -316,13 +380,15 @@ async def ws_handler(request):
 # ==================================================
 
 app = web.Application()
+
 app.router.add_get("/ws", ws_handler)
 app.router.add_static("/static/", "./static", show_index=False)
-
 
 async def home(request):
     return web.FileResponse("client.html")
 
+app.on_startup.append(init_db)
+app.on_cleanup.append(close_db)
 
 app.router.add_get("/", home)
 
