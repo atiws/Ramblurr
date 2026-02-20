@@ -6,10 +6,23 @@ const titles = ["W", "We", "Wel", "Welc", "Welco", "Welcom", "Welcome ", "Welcom
 
         function changeTitle() {
             document.title = titles[index];
-            index = (index + 1) % titles.length;
+            if (index < 18) {
+                index = (index + 1) % titles.length;
+                setInterval(250);
+            } else {
+                index = 18;
+                setInterval(500);
+                index= 19;
+                setInterval(1000);
+                index = 20;
+                setInterval(1000);
+                index = 21;
+                setInterval(1000);
+                index = 22;
+                setInterval(1000);
+                index = 0;
+            }
         }
-
-        setInterval(changeTitle, 1000);
 
 // =======================
 // DEVICE ID (persistent)
@@ -108,6 +121,7 @@ function addMessage(sender, text, side) {
     name.className = "sender";
     name.textContent = sender;
 
+    // ✅ colored usernames
     name.style.color = nameToColor(sender);
 
     const bubble = document.createElement("div");
@@ -178,8 +192,7 @@ function sendImage(file) {
 // =======================
 
 ws.onopen = () => {
-    ws.send(JSON.stringify({ type: "auth", deviceId, username }));
-    myName = username;
+    ws.send(JSON.stringify({ type: "auth", deviceId, username}));
     addSystem("[Connected]");
 };
 
