@@ -1,15 +1,28 @@
 // =======================
 // DYNAMIC TITLE
 // =======================
-const titles = ["W", "We", "Wel", "Welc", "Welco", "Welcom", "Welcome ", "Welcome t", "Welcome to ", "Welcome to R", "Welcome to Ra", "Welcome to Ram", "Welcome to Ramb", "Welcome to Rambl", "Welcome to Ramblu", "Welcome to Ramblur", "Welcome to Ramblurr", "Welcome to Ramblurr!", "~ Enjoy your stay! ~"];
+const titles = ["W", "We", "Wel", "Welc", "Welco", "Welcom", "Welcome ", "Welcome t", "Welcome to ", "Welcome to R", "Welcome to Ra", "Welcome to Ram", "Welcome to Ramb", "Welcome to Rambl", "Welcome to Ramblu", "Welcome to Ramblur", "Welcome to Ramblurr", "Welcome to Ramblurr!", "", "~ Enjoy your stay! ~", "", "~ Enjoy your stay!", ""];
         let index = 0;
 
         function changeTitle() {
             document.title = titles[index];
-            index = (index + 1) % titles.length;
+            if (index < 18) {
+                index = (index + 1) % titles.length;
+                setInterval(250);
+            } else {
+                index = 18;
+                setInterval(500);
+                index= 19;
+                setInterval(1000);
+                index = 20;
+                setInterval(1000);
+                index = 21;
+                setInterval(1000);
+                index = 22;
+                setInterval(1000);
+                index = 0;
+            }
         }
-
-        setInterval(changeTitle, 500);
 
 // =======================
 // DEVICE ID (persistent)
