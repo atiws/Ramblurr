@@ -1,7 +1,6 @@
-// =======================
 // DYNAMIC TITLE
-// =======================
-const titles = ["W", "We", "Wel", "Welc", "Welco", "Welcom", "Welcome ", "Welcome t", "Welcome to ", "Welcome to R", "Welcome to Ra", "Welcome to Ram", "Welcome to Ramb", "Welcome to Rambl", "Welcome to Ramblu", "Welcome to Ramblur", "Welcome to Ramblurr", "Welcome to Ramblurr!", "~ Enjoy your stay! ~", " Enjoy your stay! ", "~ Enjoy your stay! ~", " Enjoy your stay! ", "~ Enjoy your stay! ~", " Enjoy your stay! ", "~ Enjoy your stay! ~"];
+
+const titles = ["W", "We", "Wel", "Welc", "Welco", "Welcom", "Welcome ", "Welcome t", "Welcome to ", "Welcome to R", "Welcome to Ra", "Welcome to Ram", "Welcome to Ramb", "Welcome to Rambl", "Welcome to Ramblu", "Welcome to Ramblur", "Welcome to Ramblurr", "Welcome to Ramblurr!", "~ Enjoy your stay! ~", ". Enjoy your stay! .", "~ Enjoy your stay! ~", ". Enjoy your stay! .", "~ Enjoy your stay! ~", ". Enjoy your stay! .", "~ Enjoy your stay! ~"];
         let index = 0;
 
         function changeTitle() {
@@ -11,15 +10,13 @@ const titles = ["W", "We", "Wel", "Welc", "Welco", "Welcom", "Welcome ", "Welcom
 
         setInterval(changeTitle, 250);
 
-// =======================
 // DEVICE ID
-// =======================
 
 let deviceId = localStorage.getItem("deviceId");
 
 if (!deviceId) {
     deviceId = crypto.randomUUID();
-    localStorage.setItem("deviceId", deviceId);
+    localStorage.setItem("deviceId", deviceId);x
 }
 
 let username = localStorage.getItem("username");
@@ -45,9 +42,7 @@ if (!username) {
     }
 }
 
-// =======================
 // ELEMENTS
-// =======================
 
 const chat = document.getElementById("c");
 const input = document.getElementById("m");
@@ -58,11 +53,6 @@ const userList = document.getElementById("userList");
 const sendBtn = document.getElementById("sendBtn");
 
 let myName = null;
-
-
-// =======================
-// COLOR HELPER (NEW)
-// =======================
 
 function nameToColor(name) {
     let hash = 0;
@@ -75,18 +65,12 @@ function nameToColor(name) {
     return `hsl(${hue}, 70%, 60%)`;
 }
 
-
-// =======================
 // WEBSOCKET
-// =======================
 
 const protocol = location.protocol === "https:" ? "wss://" : "ws://";
 const ws = new WebSocket(protocol + location.host + "/ws");
 
-
-// =======================
 // CHAT RENDER HELPERS
-// =======================
 
 function scrollChat() {
     chat.scrollTop = chat.scrollHeight;
@@ -135,10 +119,7 @@ function addImage(blob, side) {
     scrollChat();
 }
 
-
-// =======================
 // USER LIST
-// =======================
 
 function renderUsers(online, all) {
     if (!userList) return;
@@ -156,10 +137,7 @@ function renderUsers(online, all) {
     }
 }
 
-
-// =======================
 // SEND HELPERS
-// =======================
 
 function sendText(text) {
     if (!text || ws.readyState !== WebSocket.OPEN) return;
@@ -168,13 +146,11 @@ function sendText(text) {
 
 function sendImage(file) {
     if (!file || ws.readyState !== WebSocket.OPEN) return;
-    addImage(file, "self"); // show immediately
+    addImage(file, "self");
     file.arrayBuffer().then(buf => ws.send(buf));
 }
 
-// =======================
 // SOCKET EVENTS
-// =======================
 
 ws.onopen = () => {
     ws.send(JSON.stringify({ type: "auth", deviceId, username}));
@@ -218,10 +194,7 @@ ws.onmessage = (e) => {
     }
 };
 
-
-// =======================
 // TEXT INPUT
-// =======================
 
 sendBtn.addEventListener("click", () => {
     sendText(input.value.trim());
@@ -236,9 +209,7 @@ input.addEventListener("keydown", (e) => {
     }
 });
 
-// =======================
 // ROOMS
-// =======================
 
 function createRoom() {
     sendText("/create");
@@ -253,10 +224,7 @@ function joinGlobal() {
     sendText("/join global");
 }
 
-
-// =======================
 // PASTE IMAGE SUPPORT
-// =======================
 
 document.addEventListener("paste", (e) => {
     const items = e.clipboardData?.items || [];
@@ -269,10 +237,7 @@ document.addEventListener("paste", (e) => {
     }
 });
 
-
-// =======================
 // DRAG & DROP SUPPORT
-// =======================
 
 document.addEventListener("dragover", (e) => {
     e.preventDefault();
@@ -294,10 +259,7 @@ document.addEventListener("drop", (e) => {
     }
 });
 
-
-// =======================
 // EMOJI PICKER
-// =======================
 
 const emojis = [
     "😀","😁","😂","🤣","😅","😊","😍","🥰","😎","🤓",
