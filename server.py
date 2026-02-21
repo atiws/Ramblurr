@@ -18,33 +18,36 @@ async def init_db(app):
         ssl="require"
     )
 
-    async with app["db"].acquire() as conn:
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS rooms(
-                name TEXT PRIMARY KEY,
-                private BOOLEAN
-            );
-        """)
+    try: 
+        async with app["db"].acquire() as conn:
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS rooms(
+                    name TEXT PRIMARY KEY,
+                    private BOOLEAN
+                );
+            """)
 
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS users(
-                device TEXT PRIMARY KEY,
-                name TEXT UNIQUE,
-                banned BOOLEAN DEFAULT FALSE
-            );
-        """)
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS users(
+                    device TEXT PRIMARY KEY,
+                    name TEXT UNIQUE,
+                    banned BOOLEAN DEFAULT FALSE
+                );
+            """)
 
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS messages(
-                id SERIAL PRIMARY KEY,
-                room TEXT,
-                username TEXT,
-                message TEXT,
-                created_at TIMESTAMPTZ DEFAULT NOW()
-            );
-        """)
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS messages(
+                    id SERIAL PRIMARY KEY,
+                    room TEXT,
+                    username TEXT,
+                    message TEXT,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            """)
 
-    await db_create_room(app, "global", False)
+            await db_create_room(app, "global", False) 
+    except Exception as e:
+        print(f"Database setup failed: {e}")
 
 async def close_db(app):
     await app["db"].close()
@@ -62,14 +65,14 @@ async def db_create_room(app, name, private):
             ON CONFLICT (name) DO NOTHING
             """
         )
-        await stmt.fetch(name, private)
+        await stmt.execute(name, private)
 
 async def db_add_message(app, room, username, message):
     async with app["db"].acquire() as conn:
         stmt = await conn.prepare(
             "INSERT INTO messages (room, username, message) VALUES ($1, $2, $3)"
         )
-        await stmt.fetch(room, username, message)
+        await stmt.execute(room, username, message)
 
 async def db_get_messages(app, room, limit=10000):
     async with app["db"].acquire() as conn:
@@ -83,54 +86,36 @@ async def db_get_messages(app, room, limit=10000):
         rows = await stmt.fetch(room, limit)
     return [f"{r['username']}: {r['message']}" for r in rows]
 
-async def db_get_user(app, device):
-    async with app["db"].acquire() as conn:
-        stmt = await conn.prepare("SELECT name FROM users WHERE device=$1")
-        row = await stmt.fetchrow(device)
-    return row["name"] if row else None
-
-async def db_set_username(app, device, name):
-    async with app["db"].acquire() as conn:
-        stmt_check = await conn.prepare("SELECT 1 FROM users WHERE name=$1")
-        exists = await stmt_check.fetchrow(name)
-        if exists:
-            raise ValueError("Username already taken")
-        
-        stmt = await conn.prepare("""
-            INSERT INTO users (device, name)
-            VALUES ($1, $2)
-            ON CONFLICT (device)
-            DO UPDATE SET name = EXCLUDED.name
-        """)
-        await stmt.fetch(device, name)    
-
-async def set_username(request):
-    try:
-        data = await request.json()
-    except:
-        return web.json_response({"error": "Invalid JSON"}, status = 400)
-    
-    device = data.get("device")
-    name = data.get("name")
-
-    # Basic validation
-    if not device or not name:
-        return web.json_response({"error": "Missing fields"}, status=400)
-    
-    if not re.match(r"^[A-Za-z0-9_]{3,20}$", name):
-        return web.json_response(
-            {"error": "Username must be 3 - 20 characters"},
-            status=400
-        )
-    
-    await db_set_username(request.app, device, name)
-    return web.json_response({"success": "True"})
+import re
+from aiohttp import web
 
 async def db_username_exists(app, name):
-    async with app["db"].acquire() as conn:
-        stmt = await conn.prepare("SELECT 1 FROM users WHERE name=$1")
-        row = await stmt.fetchrow(name)
+    async with app['db'].acquire() as conn:
+        row = await conn.fetchrow('SELECT 1 FROM users WHERE name=$1', name)
         return row is not None
+
+async def db_get_user(app, device):
+    async with app['db'].acquire() as conn:
+        row = await conn.fetchrow('SELECT name FROM users WHERE device=$1', device)
+        return row['name'] if row else None
+
+async def db_set_username(app, device, name):
+    if not re.match(r'^[A-Za-z0-9_]{3,20}$', name):
+        return False
+
+    if await db_username_exists(app, name):
+        return False
+
+    try:
+        async with app['db'].acquire() as conn:
+            await conn.execute(
+                '''INSERT INTO users(device, name) VALUES($1, $2)
+                   ON CONFLICT (device) DO UPDATE SET name = EXCLUDED.name''',
+                device, name
+            )
+        return True
+    except Exception as e:
+        return False
 
 async def send_message(request):
     data = await request.json()
@@ -157,7 +142,7 @@ async def db_get_all_users(app):
 async def db_ban_user(app, username):
     async with app["db"].acquire() as conn:
         stmt = await conn.prepare("UPDATE users SET banned = TRUE WHERE name = $1")
-        await stmt.fetch(username)
+        await stmt.execute(username)
 
 async def db_is_banned(app, device):
     async with app["db"].acquire() as conn:
@@ -401,7 +386,7 @@ async def ws_handler(request):
                 target_name = parts[1]
                 await db_ban_user(request.app, target_name)
 
-                await broadcast(request.app, current_room, "[Server]", f"User '{target_name} has been banned.")
+                await broadcast(request.app, current_room, "[Server]", f"User '{target_name}' has been banned.")
                 continue
 
     # =====================
